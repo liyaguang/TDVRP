@@ -1,0 +1,206 @@
+package edu.usc.infolab.roadnetwork;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+
+import edu.usc.infolab.base.Constants;
+import edu.usc.infolab.base.StringUtils;
+import edu.usc.infolab.gridindex.GridEdge;
+import edu.usc.infolab.gridindex.GridPoint;
+
+public class Graph {
+
+	 private HashMap<Long, Edge> edges;
+
+     public HashMap<Long, Edge> getEdges()
+     {
+         return edges; 
+     }
+     private HashMap<Long, Vertex> vertices;
+
+     public HashMap<Long, Vertex> getVertices()
+     {
+          return vertices; 
+     }
+     
+     private GridEdge edgeIndex = null;
+
+     public GridEdge getEdgeIndex()
+     {
+         if (this.edgeIndex == null)
+         {
+             this.edgeIndex = new GridEdge(edges.values(), mbr, edgeCellSize);
+         }
+         return edgeIndex; 
+     }
+     private GridPoint vertexIndex;
+     private MBR mbr;
+     private double edgeCellSize = 500 * Constants.D_PER_M;
+     private double vertexCellSize = 100 * Constants.D_PER_M;
+     private long base_id = 100000000000L;
+     
+     public Graph(String vertexFile, String edgeFile, String geometryFile) throws NumberFormatException, IOException
+     {
+    	 long beginTimeStamp=System.currentTimeMillis();
+         loadVertices(vertexFile);
+         System.out.printf("Vertex:%dms\n",(System.currentTimeMillis()-beginTimeStamp));
+         loadEdges(edgeFile);
+         System.out.printf("Edge:%dms\n",(System.currentTimeMillis()-beginTimeStamp));
+
+         if (geometryFile != null)
+         {
+             loadGeometry(geometryFile);
+         }
+         System.out.printf("Gem:%dms\n", (System.currentTimeMillis()-beginTimeStamp));
+         //Console.ReadLine();
+         buildRNIndex();
+         System.out.printf("Index:%dms\n", (System.currentTimeMillis()-beginTimeStamp));
+
+     }
+     public Graph(String vertexFile, String edgeFile) throws NumberFormatException, IOException
+     {
+    	 long beginTimeStamp=System.currentTimeMillis();
+         loadVertices(vertexFile);
+         System.out.printf("Vertex:%dms\n",(System.currentTimeMillis()-beginTimeStamp));
+         loadEdges(edgeFile);
+         System.out.printf("Edge:%dms\n",(System.currentTimeMillis()-beginTimeStamp));
+         System.out.printf("Gem:%dms\n", (System.currentTimeMillis()-beginTimeStamp));
+         //Console.ReadLine();
+         buildRNIndex();
+         System.out.printf("Index:%dms\n", (System.currentTimeMillis()-beginTimeStamp));
+     }
+     
+   /// Get the edge with a distance roughly lower than radius from point p 
+     public HashSet<Edge> RangeQuery(GeoPoint p, double radius)
+     {
+         return this.getEdgeIndex().RangeQuery(p, radius);
+     }
+   /// Get the edge with a distance roughly lower than radius from point p 
+     public HashSet<Edge> RangeQuery(GeoPoint p, double radius, double maxRadius, int minSize)
+     {
+         HashSet<Edge> result = null;
+         while (radius <= maxRadius && (result == null || result.size() <= minSize))
+         {
+             result = RangeQuery(p, radius);
+             radius *= 2;
+         }
+         return result;
+     }
+     public HashSet<Edge> RangeQuery(GeoPoint p, double radius, double maxRadius)
+     {
+    	 return RangeQuery(p,radius,maxRadius,0);
+     }
+   /// Get the vertex with a mbr
+     public HashSet<Vertex> VertexRangeQuery(MBR rect)
+     {
+         return this.vertexIndex.RangeQuery(rect);
+     }
+   /// Get the vertex with a mbr
+     public HashSet<Vertex> VertexRangeQuery(GeoPoint p, double radius)
+     {
+         double minLat, minLng, maxLat, maxLng;
+         double d_radius = radius * Constants.D_PER_M;	//radius in degree
+         minLng = p.getLng() - d_radius;
+         maxLng = p.getLng() + d_radius;
+         minLat = p.getLat() - d_radius;
+         maxLat = p.getLat() + d_radius;
+         MBR rect = new MBR(minLng, minLat, maxLng, maxLat);
+         return this.vertexIndex.RangeQuery(rect);
+     }
+     
+     private void loadVertices(String fileName) throws NumberFormatException,IOException
+     {
+         this.mbr = MBR.EMPTY();
+         //id,lng,lat
+         vertices = new HashMap<Long, Vertex>();
+         FileInputStream dataInputStream= new FileInputStream(fileName);
+         InputStreamReader read = new InputStreamReader(dataInputStream);
+ 		 BufferedReader reader = new BufferedReader(read);
+ 		String Line = new String();
+		while ((Line = reader.readLine()) != null)
+		{
+			List<String> fields= StringUtils.SimpleSplit(Line, '\t');
+			long id = Long.valueOf(fields.get(0));
+            double lat = Double.valueOf(fields.get(1));
+            double lng = Double.valueOf(fields.get(2));
+            Vertex v = new Vertex(id, lat, lng);
+            vertices.put(id, v);
+            this.mbr.Include(new GeoPoint(lat, lng));
+		}
+		reader.close();
+		read.close();
+		dataInputStream.close();
+     }
+     
+     private void loadEdges(String fileName) throws NumberFormatException, IOException
+     {
+         edges = new HashMap<Long, Edge>();
+         FileInputStream dataInputStream= new FileInputStream(fileName);
+         InputStreamReader read = new InputStreamReader(dataInputStream);
+ 		 BufferedReader reader = new BufferedReader(read);
+ 		String Line = new String();
+		while ((Line = reader.readLine()) != null)
+		{
+			List<String> fields= StringUtils.SimpleSplit(Line, '\t');
+			long id = Long.valueOf(fields.get(0));
+            long startId = Long.valueOf(fields.get(1));
+            long endId = Long.valueOf(fields.get(2));
+            Vertex start = getVertices().get(startId);
+            Vertex end = getVertices().get(endId);
+            Edge e = null;
+            if (fields.size() >= 6)
+            {
+                double length = Double.valueOf(fields.get(3));
+                double speedLimit = Double.valueOf(fields.get(4));
+                int type = Integer.valueOf(fields.get(5));
+                e = new Edge(id, start, end, length, speedLimit, type);
+            }
+            else
+            {
+                e = new Edge(id, start, end);
+            }
+            edges.put(id, e);
+            start.RegisterEdge(e);
+            end.RegisterEdge(e);
+		}
+		reader.close();
+		read.close();
+		dataInputStream.close();
+     }
+     
+     /// Load geometry information of the edge
+     private void loadGeometry(String fileName) throws NumberFormatException, IOException
+     {
+    	 FileInputStream dataInputStream= new FileInputStream(fileName);
+         InputStreamReader read = new InputStreamReader(dataInputStream);
+ 		 BufferedReader reader = new BufferedReader(read);
+ 		String Line = new String();
+		while ((Line = reader.readLine()) != null)
+		{
+			String[] fields= Line.split("\\t", 2);
+			/////List<String> fields= StringUtils.SimpleSplit(Line, '\t');
+			long edgeId = Long.valueOf(fields[0]);
+            Edge e = this.edges.get(edgeId);
+            if (e!=null)
+            {
+                e.setGeoString(fields[1]);
+            }
+		}
+		reader.close();
+		read.close();
+		dataInputStream.close();
+     }
+     
+   /// Build grid index for road network
+     private void buildRNIndex()
+     {
+         //this.edgeIndex = new GridEdge(edges.Values, mbr, edgeCellSize);
+         this.vertexIndex = new GridPoint(vertices.values(), mbr, vertexCellSize);
+     }
+     
+}

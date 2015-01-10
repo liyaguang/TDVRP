@@ -14,7 +14,6 @@ import java.util.List;
 import javax.management.Query;
 
 import edu.usc.infolab.lib.GeoPoint;
-import edu.usc.infolab.lib.QueryBuilder;
 
 public class DataRetrievalTest {
 	private static final String logFileName = "data/history.txt";
@@ -25,89 +24,89 @@ public class DataRetrievalTest {
 		int startTime = 12, endTime = 36;
 		String outFileName = "data/dynamic_dist.txt";
 		// String outFileName = "data/dist.txt";
-//		genDistFile(points, startTime, endTime, outFileName);
+		// genDistFile(points, startTime, endTime, outFileName);
 		// genDistFile(points, startTime, endTime, outFileName);
 	}
 
-	public static void genStaticDistFile(List<GeoPoint> points)
-			throws IllegalStateException, IOException {
-		String logFileName = "data/history.txt";
-		String outFileName = "data/dist.txt";
-		String day = "Tuesday";
-		int time = 30;
-		int size = points.size();
-		PrintWriter pr = new PrintWriter(outFileName, "UTF-8");
-		PrintWriter logWriter = new PrintWriter(logFileName, "UTF-8");
-		for (int s = 0; s < size; ++s) {
-			for (int e = 0; e < size; ++e) {
-				String travelTime = "0";
-				if (s != e) {
-					String result = QueryBuilder.getResult(points.get(s),
-							points.get(e), time, day);
-					logWriter.println(String.format("n%d->n%d\t%s", s, e,
-							result));
-					String[] fs = result.split("@");
-					if (fs.length > 1) {
-						travelTime = fs[0]
-								.substring(fs[0].lastIndexOf(';') + 1);
-						travelTime = travelTime.substring(0,
-								travelTime.indexOf('-'));
+	// public static void genStaticDistFile(List<GeoPoint> points)
+	// throws IllegalStateException, IOException {
+	// String logFileName = "data/history.txt";
+	// String outFileName = "data/dist.txt";
+	// String day = "Tuesday";
+	// int time = 30;
+	// int size = points.size();
+	// PrintWriter pr = new PrintWriter(outFileName, "UTF-8");
+	// PrintWriter logWriter = new PrintWriter(logFileName, "UTF-8");
+	// for (int s = 0; s < size; ++s) {
+	// for (int e = 0; e < size; ++e) {
+	// String travelTime = "0";
+	// if (s != e) {
+	// String result = QueryBuilder.getResult(points.get(s),
+	// points.get(e), time, day);
+	// logWriter.println(String.format("n%d->n%d\t%s", s, e,
+	// result));
+	// String[] fs = result.split("@");
+	// if (fs.length > 1) {
+	// travelTime = fs[0]
+	// .substring(fs[0].lastIndexOf(';') + 1);
+	// travelTime = travelTime.substring(0,
+	// travelTime.indexOf('-'));
+	//
+	// }
+	// }
+	// pr.write(String.format("%.3f", Double.parseDouble(travelTime)));
+	// if (e != size - 1) {
+	// pr.write("\t");
+	// }
+	// }
+	// pr.println();
+	// }
+	// logWriter.close();
+	// pr.close();
+	// }
 
-					}
-				}
-				pr.write(String.format("%.3f", Double.parseDouble(travelTime)));
-				if (e != size - 1) {
-					pr.write("\t");
-				}
-			}
-			pr.println();
-		}
-		logWriter.close();
-		pr.close();
-	}
-
-	public static void genDistFile(List<GeoPoint> points, int startTime,
-			int endTime, String outFileName) throws IllegalStateException,
-			IOException {
-		String day = "Tuesday";
-		int size = points.size();
-		PrintWriter pr = new PrintWriter(outFileName, "UTF-8");
-		PrintWriter logWriter = new PrintWriter(new FileOutputStream(
-				logFileName, true));
-		pr.println(String.format("%d\t%d\t%d", size, startTime, endTime));
-		for (int s = 0; s < size; ++s) {
-			for (int e = 0; e < size; ++e) {
-				System.out.println(s + "->" + e);
-				String travelTime = "0";
-				for (int t = startTime; t <= endTime; ++t) {
-					if (s != e)
-						try {
-							String result = QueryBuilder.getResult(
-									points.get(s), points.get(e), t, day);
-							logWriter.println(String.format("n%d->n%d@%d\t%s",
-									s, e, t, result));
-							if (result != null) {
-								String[] fs = result.split("@");
-								if (fs.length > 1) {
-									travelTime = fs[0].substring(fs[0]
-											.lastIndexOf(';') + 1);
-									travelTime = travelTime.substring(0,
-											travelTime.indexOf('-'));
-								}
-							}
-						} catch (Exception e2) {
-							// TODO: handle exception
-							System.out.println(String.format(
-									"Error at: %d->%d@%d", s, e, t));
-						}
-					pr.println(String.format("%d\t%d\t%d\t%.3f", s, e, t,
-							Double.parseDouble(travelTime)));
-				}
-			}
-		}
-		logWriter.close();
-		pr.close();
-	}
+	// public static void genDistFile(List<GeoPoint> points, int startTime,
+	// int endTime, String outFileName) throws IllegalStateException,
+	// IOException {
+	// String day = "Tuesday";
+	// int size = points.size();
+	// PrintWriter pr = new PrintWriter(outFileName, "UTF-8");
+	// PrintWriter logWriter = new PrintWriter(new FileOutputStream(
+	// logFileName, true));
+	// pr.println(String.format("%d\t%d\t%d", size, startTime, endTime));
+	// for (int s = 0; s < size; ++s) {
+	// for (int e = 0; e < size; ++e) {
+	// System.out.println(s + "->" + e);
+	// String travelTime = "0";
+	// for (int t = startTime; t <= endTime; ++t) {
+	// if (s != e)
+	// try {
+	// String result = QueryBuilder.getResult(
+	// points.get(s), points.get(e), t, day);
+	// logWriter.println(String.format("n%d->n%d@%d\t%s",
+	// s, e, t, result));
+	// if (result != null) {
+	// String[] fs = result.split("@");
+	// if (fs.length > 1) {
+	// travelTime = fs[0].substring(fs[0]
+	// .lastIndexOf(';') + 1);
+	// travelTime = travelTime.substring(0,
+	// travelTime.indexOf('-'));
+	// }
+	// }
+	// } catch (Exception e2) {
+	// // TODO: handle exception
+	// System.out.println(String.format(
+	// "Error at: %d->%d@%d", s, e, t));
+	// }
+	// pr.println(String.format("%d\t%d\t%d\t%.3f", s, e, t,
+	// Double.parseDouble(travelTime)));
+	// }
+	// }
+	// }
+	// logWriter.close();
+	// pr.close();
+	// }
 
 	public static double[][][] readStaticDistArray(String filename, int times)
 			throws IOException {
